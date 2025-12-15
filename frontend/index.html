@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCLE Navigator | Dashboard Strategis Ketimpangan SDM</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>       
+    <script src="chart_manager.js"></script>
+    <script src="script.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        secondary: {
+                            50: '#fefce8',
+                            100: '#fef9c3',
+                            200: '#fef08a',
+                            300: '#fde047',
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                            700: '#a16207',
+                            800: '#854d0e',
+                            900: '#713f12',
+                        },
+                        danger: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            300: '#fca5a5',
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        success: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        dark: {
+                            50: '#f9fafb',
+                            100: '#f3f4f6',
+                            200: '#e5e7eb',
+                            300: '#d1d5db',
+                            400: '#9ca3af',
+                            500: '#6b7280',
+                            600: '#4b5563',
+                            700: '#374151',
+                            800: '#1f2937',
+                            900: '#111827',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Plotly untuk visualisasi -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --color-primary: #3b82f6;
+            --color-secondary: #eab308;
+            --color-danger: #ef4444;
+            --color-success: #22c55e;
+            --color-dark: #111827;
+            --color-light: #f9fafb;
+        }
+        
+        .dark {
+            --color-primary: #60a5fa;
+            --color-secondary: #facc15;
+            --color-danger: #f87171;
+            --color-success: #4ade80;
+            --color-dark: #f9fafb;
+            --color-light: #111827;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-primary);
+            border-radius: 4px;
+        }
+        
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Card hover effects */
+        .dashboard-card {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        
+        .dark .dashboard-card {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .dark .dashboard-card:hover {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .dark .toggle-slider {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+        
+        .toggle-slider i {
+            position: absolute;
+            top: 6px;
+            font-size: 14px;
+            color: white;
+        }
+        
+        .toggle-slider .sun {
+            left: 8px;
+        }
+        
+        .toggle-slider .moon {
+            right: 8px;
+        }
+        
+        /* Custom Range Slider */
+        .range-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #ef4444 0%, #f59e0b 50%, #22c55e 100%);
+            outline: none;
+        }
+        
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .dark .range-slider::-webkit-slider-thumb {
+            border: 3px solid #1f2937;
+        }
+        
+        /* Gradient Text */
+        .gradient-text {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .dark .gradient-text {
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Badge Styles */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1;
+        }
+        
+        .badge-primary {
+            background-color: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        .dark .badge-primary {
+            background-color: rgba(96, 165, 250, 0.2);
+            color: #93c5fd;
+        }
+        
+        .badge-success {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+        }
+        
+        /* Modal Animation */
+        .modal-enter {
+            animation: modalFadeIn 0.3s ease-out;
+        }
+        
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-dark-900 dark:text-dark-50 min-h-screen">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white/90 dark:bg-dark-800/90 backdrop-blur-sm border-b border-gray-200 dark:border-dark-700 shadow-sm">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+                        <i class="fas fa-chart-network text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold gradient-text">HCLE Navigator</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Dashboard Strategis Ketimpangan SDM Indonesia</p>
+                    </div>
+                </div>
+                
+                <!-- Navigation & Controls -->
+                <div class="flex items-center space-x-4">
+                    <!-- Navigation Button -->
+                    <a href="simulasi.html" class="hidden md:inline-flex items-center px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors duration-200">
+                        <i class="fas fa-cogs mr-2"></i>
+                        Mode Simulasi
+                    </a>
+                    
+                    <!-- Info Button -->
+                    <button id="infoBtn" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors">
+                        <i class="fas fa-info-circle text-gray-600 dark:text-gray-300"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Hero Section -->
+        <section class="mb-8">
+            <div class="bg-gradient-to-r from-primary-500/10 to-secondary-500/10 dark:from-primary-900/30 dark:to-secondary-900/30 rounded-2xl p-6 md:p-8 border border-primary-200 dark:border-primary-800">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
+                    <div class="mb-6 md:mb-0">
+                        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                            Analisis Human Capital Loss Equivalent (HCLE) Indonesia
+                        </h2>
+                        <p class="text-gray-600 dark:text-gray-300 mb-4 max-w-3xl">
+                            Dashboard interaktif untuk mengidentifikasi, menganalisis, dan mensimulasikan strategi penurunan kerugian modal manusia di beberapa provinsi Indonesia.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="badge badge-primary">
+                                <i class="fas fa-database mr-1"></i> Data 2021-2024
+                            </span>
+                            <span class="badge badge-primary">
+                                <i class="fas fa-cube mr-1"></i> 4 Kluster Ketimpangan
+                            </span>
+                            <span class="badge badge-primary">
+                                <i class="fas fa-bullseye mr-1"></i> Target 0.2500 HCLE
+                            </span>
+                        </div>
+                    </div>
+                    <div class="bg-white dark:bg-dark-800 rounded-xl p-4 shadow-lg min-w-[200px]">
+                        <div class="text-center">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">HCLE Nasional 2024</p>
+                            <p id="hcle-nasional-value" class="text-3xl font-bold text-primary-600 dark:text-primary-400">0.3492</p>
+                            <div class="mt-2 flex items-center justify-center">
+                                <div class="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-2">
+                                    <div class="bg-gradient-to-r from-danger-500 to-success-500 h-2 rounded-full" style="width: 65%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">65%</span>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Menuju target 0.2500</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Metrics -->
+        <section class="mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="dashboard-card bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-danger-500/10 flex items-center justify-center">
+                            <i class="fas fa-user-slash text-danger-500 text-xl"></i>
+                        </div>
+                        <span class="text-xs font-medium px-3 py-1 rounded-full bg-danger-500/10 text-danger-600 dark:text-danger-400">Kritis</span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Tingkat NEET</h3>
+                    <p id="neet-value" class="text-3xl font-bold text-gray-900 dark:text-white mb-2">22.4%</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        <span id="neet-change" class="text-danger-500 font-medium">+1.2%</span> dari tahun sebelumnya
+                    </p>
+                    <div class="mt-4 pt-4 border-t border-gray-100 dark:border-dark-700">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Persentase pemuda tidak bekerja/belajar</p>
+                    </div>
+                </div>
+                
+                <!-- Card 2 -->
+                <div class="dashboard-card bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-success-500/10 flex items-center justify-center">
+                            <i class="fas fa-graduation-cap text-success-500 text-xl"></i>
+                        </div>
+                        <span class="text-xs font-medium px-3 py-1 rounded-full bg-success-500/10 text-success-600 dark:text-success-400">Membaik</span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Rata-rata Lama Sekolah</h3>
+                    <p id="rls-value" class="text-3xl font-bold text-gray-900 dark:text-white mb-2">9.2 tahun</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        <span id="rls-change" class="text-success-500 font-medium">+0.3 tahun</span> dari tahun sebelumnya
+                    </p>
+                    <div class="mt-4 pt-4 border-t border-gray-100 dark:border-dark-700">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pencapaian pendidikan penduduk 25+ tahun</p>
+                    </div>
+                </div>
+                
+                <!-- Card 3 -->
+                <div class="dashboard-card bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-primary-500/10 flex items-center justify-center">
+                            <i class="fas fa-sitemap text-primary-500 text-xl"></i>
+                        </div>
+                        <span class="text-xs font-medium px-3 py-1 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400">Model</span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Akurasi Prediksi</h3>
+                    <p id="accuracy-value" class="text-3xl font-bold text-gray-900 dark:text-white mb-2">99.12%</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Koefisien determinasi (R²) model regresi
+                    </p>
+                    <div class="mt-4 pt-4 border-t border-gray-100 dark:border-dark-700">
+                        <div class="flex items-center">
+                            <div class="w-full bg-gray-200 dark:bg-dark-700 rounded-full h-2">
+                                <div id="accuracy-bar" class="bg-gradient-to-r from-primary-500 to-secondary-500 h-2 rounded-full" style="width: 99%"></div>
+                            </div>
+                            <span id="accuracy-decimal" class="text-xs text-gray-500 dark:text-gray-400 ml-2">0.9912</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Visualization Section -->
+        <section class="mb-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column: Priority Ranking -->
+                <div class="lg:col-span-1">
+                    <div class="dashboard-card bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm h-full">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Prioritas Aksi</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Dampak variabel terhadap HCLE</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-lg bg-primary-500/10 flex items-center justify-center">
+                                <i class="fas fa-sort-amount-down text-primary-500"></i>
+                            </div>
+                        </div>
+                        
+                        <div id="betaChart" class="h-80"></div>
+                        
+                        <div class="mt-6 pt-6 border-t border-gray-100 dark:border-dark-700">
+                            <br><br>
+                            <div class="flex items-center text-sm">
+                                <div class="w-3 h-3 rounded-full bg-danger-500 mr-2"></div>
+                                <span class="text-gray-600 dark:text-gray-400 mr-4">Dampak Negatif</span>
+                                <div class="w-3 h-3 rounded-full bg-success-500 mr-2"></div>
+                                <span class="text-gray-600 dark:text-gray-400">Dampak Positif</span>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                Berdasarkan analisis Regresi Efek Tetap pada data panel 2021-2024
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column: Map & Trends -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Cluster Map -->
+                    <div class="dashboard-card bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Peta Kluster Ketimpangan</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Pengelompokan provinsi berdasarkan profil HCLE</p>
+                            </div>
+                            <div class="flex space-x-2">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full mr-1" style="background-color: #fca5a5;"></div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Kluster 1</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full mr-1" style="background-color: #fde047;"></div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Kluster 2</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full mr-1" style="background-color: #93c5fd;"></div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Kluster 3</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full mr-1" style="background-color: #1e40af;"></div>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">Kluster 4</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="klusterMap" class="h-96"></div>
+                        
+                        <div class="mt-6 pt-6 border-t border-gray-100 dark:border-dark-700">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <!-- Kluster 1 -->
+                                <div class="bg-red-50 dark:bg-red-900/10 rounded-lg p-3 border-l-4 border-red-400">
+                                    <h4 class="font-semibold text-red-700 dark:text-red-400 text-sm mb-2">
+                                        <i class="fas fa-triangle-exclamation mr-1"></i> Kluster 1: Tantangan Moderat
+                                    </h4>
+                                    <p class="text-xs text-red-600 dark:text-red-300 mb-1">
+                                        <strong>Karakteristik:</strong> HCLE sedang (~0.32), NEET sedang-tinggi (~20.9%), RLS paling rendah (~8.9 tahun)
+                                    </p>
+                                    <p class="text-xs text-red-600 dark:text-red-300">
+                                        <strong>Aksi:</strong> Fokus pada Peningkatan Partisipasi Pendidikan Dasar dan kejar ketertinggalan RLS
+                                    </p>
+                                </div>
+                                
+                                <!-- Kluster 2 -->
+                                <div class="bg-yellow-50 dark:bg-yellow-900/10 rounded-lg p-3 border-l-4 border-yellow-400">
+                                    <h4 class="font-semibold text-yellow-700 dark:text-yellow-400 text-sm mb-2">
+                                        <i class="fas fa-star mr-1"></i> Kluster 2: Aman & Unggul
+                                    </h4>
+                                    <p class="text-xs text-yellow-600 dark:text-yellow-300 mb-1">
+                                        <strong>Karakteristik:</strong> HCLE terendah (~0.16), NEET terendah (~16.4%), RLS & HLS tertinggi
+                                    </p>
+                                    <p class="text-xs text-yellow-600 dark:text-yellow-300">
+                                        <strong>Aksi:</strong> Benchmark untuk provinsi lain. Pertahankan investasi SDM & fokus inovasi
+                                    </p>
+                                </div>
+                                
+                                <!-- Kluster 3 -->
+                                <div class="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-3 border-l-4 border-blue-400">
+                                    <h4 class="font-semibold text-blue-700 dark:text-blue-400 text-sm mb-2">
+                                        <i class="fas fa-book mr-1"></i> Kluster 3: Paradoks Pendidikan
+                                    </h4>
+                                    <p class="text-xs text-blue-600 dark:text-blue-300 mb-1">
+                                        <strong>Karakteristik:</strong> HCLE sedang (~0.29), NEET tinggi (~22.7%), HLS tertinggi (~14.2 tahun)
+                                    </p>
+                                    <p class="text-xs text-blue-600 dark:text-blue-300">
+                                        <strong>Aksi:</strong> Program Pelatihan Vokasi & Penciptaan Lapangan Kerja sesuai dengan lulusan HLS tinggi
+                                    </p>
+                                </div>
+                                
+                                <!-- Kluster 4 -->
+                                <div class="bg-red-100 dark:bg-red-900/20 rounded-lg p-3 border-l-4 border-red-600">
+                                    <h4 class="font-semibold text-red-800 dark:text-red-300 text-sm mb-2">
+                                        <i class="fas fa-warning mr-1"></i> Kluster 4: Ketimpangan Struktural Parah
+                                    </h4>
+                                    <p class="text-xs text-red-700 dark:text-red-200 mb-1">
+                                        <strong>Karakteristik:</strong> HCLE tertinggi (~0.53), NEET tertinggi (~27.4%), P1 & P2 ekstrem (kemiskinan parah)
+                                    </p>
+                                    <p class="text-xs text-red-700 dark:text-red-200">
+                                        <strong>Aksi:</strong> Intervensi Multisektoral Masif untuk mengatasi kemiskinan & pengangguran
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                <i class="fas fa-info-circle text-primary-500 mr-2"></i>
+                                Klustering menggunakan <span class="font-medium">K-Means</span> berdasarkan: NEET (Unemployment), Pendidikan (RLS/HLS), dan Akses Internet
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Trend Chart -->
+                    <div class="dashboard-card bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-white">Tren Nasional 2021-2024</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Perkembangan HCLE dan indikator kunci</p>
+                            </div>
+                            <div class="w-10 h-10 rounded-lg bg-secondary-500/10 flex items-center justify-center">
+                                <i class="fas fa-chart-line text-secondary-500"></i>
+                            </div>
+                        </div>
+                        
+                        <div id="trendChart" class="h-72"></div>
+                        
+                        <div class="mt-6 pt-6 border-t border-gray-100 dark:border-dark-700">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full bg-primary-500 mr-2"></div>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">HCLE Nasional</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full bg-secondary-500 mr-2"></div>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">Tingkat NEET (%)</span>
+                                </div>
+                                <a href="simulasi.html" class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center">
+                                    <span>Uji Simulasi</span>
+                                    <i class="fas fa-arrow-right ml-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Glossary Section -->
+        <section class="mb-8">
+            <div class="dashboard-card bg-white dark:bg-dark-800 rounded-2xl p-6 shadow-sm">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">📚 Glosarium Konsep HCLE</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Glossary Item 1 -->
+                    <div class="bg-gray-50 dark:bg-dark-700/50 rounded-xl p-4">
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-danger-500/10 flex items-center justify-center mr-3">
+                                <span class="text-danger-500 font-bold">HCLE</span>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Human Capital Loss Equivalent</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Metrik kerugian modal manusia akibat ketimpangan dan inefisiensi investasi SDM.
+                        </p>
+                    </div>
+                    
+                    <!-- Glossary Item 2 -->
+                    <div class="bg-gray-50 dark:bg-dark-700/50 rounded-xl p-4">
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center mr-3">
+                                <span class="text-primary-500 font-bold">NEET</span>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Not in Employment, Education or Training</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Pemuda usia 15-24 tahun yang tidak bekerja, bersekolah, atau pelatihan.
+                        </p>
+                    </div>
+                    
+                    <!-- Glossary Item 3 -->
+                    <div class="bg-gray-50 dark:bg-dark-700/50 rounded-xl p-4">
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-success-500/10 flex items-center justify-center mr-3">
+                                <span class="text-success-500 font-bold">RLS</span>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">Rata-rata Lama Sekolah</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Rata-rata tahun sekolah yang telah diselesaikan penduduk usia 25+.
+                        </p>
+                    </div>
+                    
+                    <!-- Glossary Item 4 -->
+                    <div class="bg-gray-50 dark:bg-dark-700/50 rounded-xl p-4">
+                        <div class="flex items-center mb-3">
+                            <div class="w-8 h-8 rounded-lg bg-secondary-500/10 flex items-center justify-center mr-3">
+                                <span class="text-secondary-500 font-bold">K-Means</span>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 dark:text-white">K-Means Clustering</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Algoritma ML untuk mengelompokkan provinsi berdasarkan profil ketimpangan.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <div class="flex items-center mb-4">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center mr-3">
+                            <i class="fas fa-chart-network text-white text-sm"></i>
+                        </div>
+                        <h4 class="text-lg font-bold gradient-text">HCLE Navigator</h4>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 max-w-md">
+                        Alat bantu pengambilan keputusan strategis untuk menekan kerugian modal manusia Indonesia melalui pendekatan berbasis data.
+                    </p>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <a href="simulasi.html" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 text-white font-medium rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl mb-4">
+                        <i class="fas fa-cogs mr-2"></i>
+                        Lanjut ke Mode Simulasi
+                    </a>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                        © 2024 HCLE Navigator v1.0 • Data diperbarui: Juni 2024
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white dark:bg-dark-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto modal-enter">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700 p-6 rounded-t-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                        <i class="fas fa-info-circle text-primary-500 mr-2"></i>
+                        Tentang HCLE Navigator
+                    </h3>
+                    <button id="closeModal" class="w-8 h-8 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-dark-600">
+                        <i class="fas fa-times text-gray-600 dark:text-gray-300"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="p-6">
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-3">🎯 Misi HCLE Navigator</h4>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">
+                        HCLE Navigator adalah platform analitik yang dirancang untuk membantu pembuat kebijakan memahami dan menangani kerugian modal manusia (Human Capital Loss Equivalent) di Indonesia melalui pendekatan berbasis data.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4">
+                            <h5 class="font-medium text-primary-700 dark:text-primary-300 mb-2">
+                                <i class="fas fa-search mr-2"></i>Diagnosis
+                            </h5>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                Identifikasi pola ketimpangan provinsi menggunakan klustering.
+                            </p>
+                        </div>
+                        <div class="bg-success-50 dark:bg-success-900/20 rounded-xl p-4">
+                            <h5 class="font-medium text-success-700 dark:text-success-300 mb-2">
+                                <i class="fas fa-bullseye mr-2"></i>Prioritisasi
+                            </h5>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                Tentukan variabel dengan dampak terbesar terhadap HCLE.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-3">📊 Metodologi Analisis</h4>
+                    <ul class="space-y-2 text-gray-600 dark:text-gray-400">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-success-500 mt-1 mr-3"></i>
+                            <span>Data panel provinsi (2021-2024) dari BPS</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-success-500 mt-1 mr-3"></i>
+                            <span>Model Regresi Efek Tetap untuk identifikasi faktor determinan</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-success-500 mt-1 mr-3"></i>
+                            <span>Klustering K-Means untuk segmentasi provinsi</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-success-500 mt-1 mr-3"></i>
+                            <span>Simulasi dampak kebijakan berbasis model prediktif</span>
+                        </li>
+                    </ul>
+                </div>
+                
+        
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 bg-white dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700 p-4 rounded-b-2xl">
+                <div class="flex justify-end">
+                    <button id="closeModalBtn" class="px-4 py-2 bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+   
+    
+    <script>
+        // Modal and functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const infoBtn = document.getElementById('infoBtn');
+            const infoModal = document.getElementById('infoModal');
+            const closeModal = document.getElementById('closeModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            
+            // Modal functionality
+            infoBtn.addEventListener('click', () => {
+                infoModal.classList.remove('hidden');
+            });
+            
+            closeModal.addEventListener('click', () => {
+                infoModal.classList.add('hidden');
+            });
+            
+            closeModalBtn.addEventListener('click', () => {
+                infoModal.classList.add('hidden');
+            });
+            
+            // Close modal when clicking outside
+            infoModal.addEventListener('click', (e) => {
+                if (e.target === infoModal) {
+                    infoModal.classList.add('hidden');
+                }
+            });
+            
+            // Add hover effects to dashboard cards
+            const cards = document.querySelectorAll('.dashboard-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-8px)';
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                });
+            });
+            
+            // Initialize placeholder data if API is not available
+            setTimeout(() => {
+                if (!document.getElementById('hcle-nasional-value').innerText || 
+                    document.getElementById('hcle-nasional-value').innerText === '-') {
+                    document.getElementById('hcle-nasional-value').innerText = '0.3492';
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
