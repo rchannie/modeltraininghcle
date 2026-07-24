@@ -1,15 +1,45 @@
 // chart_manager.js - Chart Visualization Manager
 
 const ChartManager = {
-    // Mapping nama provinsi dari data ke GeoJSON
+    // Mapping nama provinsi dari data (CSV, HURUF BESAR) ke nama di GeoJSON 38-provinsi
+    // (properties.PROVINSI, Title Case). Semua 34 provinsi di CSV kini punya pasangan.
     provinceMapping: {
-        'ACEH': 'DI. ACEH',
-        'DI YOGYAKARTA': 'DAERAH ISTIMEWA YOGYAKARTA',
-        'KEP. BANGKA BELITUNG': 'BANGKA BELITUNG',
-        'KEP. RIAU': 'RIAU ISLANDS',
-        'NUSA TENGGARA BARAT': 'NUSATENGGARA BARAT',
-        'PAPUA': 'IRIAN JAYA TIMUR',
-        'PAPUA BARAT': 'IRIAN JAYA BARAT'
+        'ACEH': 'Aceh',
+        'BALI': 'Bali',
+        'BANTEN': 'Banten',
+        'BENGKULU': 'Bengkulu',
+        'DI YOGYAKARTA': 'Daerah Istimewa Yogyakarta',
+        'DKI JAKARTA': 'DKI Jakarta',
+        'GORONTALO': 'Gorontalo',
+        'JAMBI': 'Jambi',
+        'JAWA BARAT': 'Jawa Barat',
+        'JAWA TENGAH': 'Jawa Tengah',
+        'JAWA TIMUR': 'Jawa Timur',
+        'KALIMANTAN BARAT': 'Kalimantan Barat',
+        'KALIMANTAN SELATAN': 'Kalimantan Selatan',
+        'KALIMANTAN TENGAH': 'Kalimantan Tengah',
+        'KALIMANTAN TIMUR': 'Kalimantan Timur',
+        'KALIMANTAN UTARA': 'Kalimantan Utara',
+        'KEP. BANGKA BELITUNG': 'Kepulauan Bangka Belitung',
+        'KEP. RIAU': 'Kepulauan Riau',
+        'LAMPUNG': 'Lampung',
+        'MALUKU': 'Maluku',
+        'MALUKU UTARA': 'Maluku Utara',
+        'NUSA TENGGARA BARAT': 'Nusa Tenggara Barat',
+        'NUSA TENGGARA TIMUR': 'Nusa Tenggara Timur',
+        'PAPUA': 'Papua',
+        'PAPUA BARAT': 'Papua Barat',
+        'RIAU': 'Riau',
+        'SULAWESI BARAT': 'Sulawesi Barat',
+        'SULAWESI SELATAN': 'Sulawesi Selatan',
+        'SULAWESI TENGAH': 'Sulawesi Tengah',
+        'SULAWESI TENGGARA': 'Sulawesi Tenggara',
+        'SULAWESI UTARA': 'Sulawesi Utara',
+        'SUMATERA BARAT': 'Sumatera Barat',
+        'SUMATERA SELATAN': 'Sumatera Selatan',
+        'SUMATERA UTARA': 'Sumatera Utara'
+        // Catatan: 4 provinsi Papua baru (Selatan/Tengah/Pegunungan/Barat Daya)
+        // ada di GeoJSON tapi belum ada datanya di CSV -> tetap kosong sampai CSV dilengkapi.
     },
     
     mapProvinceNameToGeoJSON: function(provinsiName) {
@@ -38,7 +68,8 @@ const ChartManager = {
 
     // --- FUNGSI 1: PETA KLUSTER (CHOROPLETH) ---
     visualizeKlusterMap: function(mapData) {
-        const GEOJSON_URL = 'https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia-province-simple.json';
+        // GeoJSON 38 provinsi disajikan oleh Flask secara lokal (tidak bergantung internet)
+        const GEOJSON_URL = 'http://127.0.0.1:5000/api/geojson';
         const colors = this.getColors();
         const self = this;
         
@@ -67,7 +98,8 @@ const ChartManager = {
                     z: z, 
                     text: hovertext,
                     hoverinfo: 'text',
-                    featureidkey: 'properties.Propinsi', // KUNCI KRITIS: Harus sama dengan nama di GeoJSON
+                    // GeoJSON sudah punya feature.id = nama provinsi, jadi Plotly mencocokkan
+                    // 'locations' ke feature.id secara default (paling kompatibel dgn Plotly v1.58.5).
                     colorscale: color_scale,
                     autocolorscale: false,
                     marker: { line: { color: colors.grid, width: 0.5 } },
@@ -90,10 +122,10 @@ const ChartManager = {
                         scope: 'asia',
                         showframe: false,
                         showcoastlines: true,
-                        lonaxis: { 'range': [90, 145] },
-                        lataxis: { 'range': [-15, 10] },
+                        lonaxis: { range: [94, 142] },
+                        lataxis: { range: [-11, 7] },
                         projection: { type: 'mercator' },
-                        bgcolor: colors.background 
+                        bgcolor: colors.background
                     },
                     margin: { l: 0, r: 0, t: 0, b: 0 },
                     paper_bgcolor: 'rgba(0,0,0,0)',

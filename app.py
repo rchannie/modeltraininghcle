@@ -1,12 +1,17 @@
 # app.py - DIPERBAIKI
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from model_utils import load_and_preprocess_data, run_all_analysis
 import pandas as pd
+import os
 
 app = Flask(__name__)
 CORS(app)
+
+# Folder tempat file frontend & GeoJSON berada
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
 # --- LOAD DAN HITUNG MODEL SEKALI SAJA SAAT SERVER DIMULAI ---
 print("Memuat data dan model...")
@@ -108,6 +113,24 @@ def run_simulation():
             'success': False,
             'error': str(e)
         }), 400
+
+# --- Menyajikan halaman frontend (agar 1 origin, tanpa masalah file://) ---
+@app.route('/')
+def serve_index():
+    return send_from_directory(FRONTEND_DIR, 'index.html')
+
+@app.route('/<path:filename>')
+def serve_frontend_file(filename):
+    # Melayani file frontend lain: script.js, chart_manager.js, simulasi.html, dll.
+    return send_from_directory(FRONTEND_DIR, filename)
+
+# --- ENDPOINT: GeoJSON Peta Indonesia (38 provinsi) ---
+@app.route('/api/geojson', methods=['GET'])
+def get_geojson():
+    # Melayani file GeoJSON lokal supaya peta tidak bergantung koneksi ke GitHub
+    return send_from_directory(os.path.join(FRONTEND_DIR, 'data'),
+                               'indonesia-38-provinces.geojson',
+                               mimetype='application/json')
 
 # --- ENDPOINT 3: Health Check ---
 @app.route('/api/health', methods=['GET'])
