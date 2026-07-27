@@ -1,0 +1,715 @@
+/* app.css — HCLE Navigator design system
+   Token-first. Semua warna chart & UI berasal dari palet yang sudah divalidasi
+   (lightness band, chroma floor, separasi CVD, kontras terhadap surface). */
+
+/* ---------- TOKENS ---------- */
+:root {
+  color-scheme: light;
+
+  --surface-1: #fcfcfb;          /* permukaan kartu / chart */
+  --plane:     #f4f4f1;          /* bidang halaman */
+  --text-1:    #0b0b0b;
+  --text-2:    #52514e;
+  --muted:     #6f6e69;
+  --grid:      #e1e0d9;
+  --axis:      #c3c2b7;
+  --border:    rgba(11, 11, 11, 0.10);
+  --border-strong: rgba(11, 11, 11, 0.16);
+
+  /* Ramp ordinal kluster: satu hue, terang -> gelap. K1 terbaik, K3 terburuk. */
+  --k1: #86b6ef;
+  --k2: #2a78d6;
+  --k3: #184f95;
+
+  /* Kategorikal: slot 1 & 2 (dipakai saat dua seri harus dibedakan) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+
+  /* Diverging: arah efek pada HCLI (turun = baik, naik = buruk) */
+  --pos: #2a78d6;                /* menurunkan HCLI */
+  --neg: #e34948;                /* menaikkan HCLI */
+
+  /* Status — makna tetap, selalu berpasangan dengan ikon + label */
+  --good:     #0ca30c;
+  --warning:  #fab219;
+  --critical: #d03b3b;
+  --good-ink: #006300;
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(11, 11, 11, .04), 0 1px 1px rgba(11, 11, 11, .03);
+
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --plane:     #0d0d0d;
+    --text-1:    #ffffff;
+    --text-2:    #c3c2b7;
+    --muted:     #918f88;
+    --grid:      #2c2c2a;
+    --axis:      #383835;
+    --border:    rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.18);
+
+    /* Ramp ordinal untuk permukaan gelap: step gelapnya dinaikkan supaya
+       K3 tetap terpisah dari latar (2,63:1, bukan 2,15:1). */
+    --k1: #cde2fb;
+    --k2: #5598e7;
+    --k3: #1c5cab;
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+
+    --pos: #3987e5;
+    --neg: #e66767;
+    --good-ink: #0ca30c;
+    --shadow: none;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-1: #1a1a19;
+  --plane:     #0d0d0d;
+  --text-1:    #ffffff;
+  --text-2:    #c3c2b7;
+  --muted:     #918f88;
+  --grid:      #2c2c2a;
+  --axis:      #383835;
+  --border:    rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  --k1: #9ec5f4;
+  --k2: #2a78d6;
+  --k3: #184f95;
+
+  --series-1: #3987e5;
+  --series-2: #d95926;
+
+  --pos: #3987e5;
+  --neg: #e66767;
+  --good-ink: #0ca30c;
+  --shadow: none;
+}
+
+/* ---------- RESET ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  /* header sticky 60px: target anchor & fokus keyboard tidak tertutup header */
+  scroll-padding-top: 72px;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-1);
+  background: var(--plane);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; line-height: 1.3; }
+p { margin: 0; }
+a { color: inherit; }
+
+button, select, input { font: inherit; color: inherit; }
+
+:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- LAYOUT ---------- */
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.topbar {
+  position: sticky; top: 0;
+  /* Plotly membuat stacking context sendiri di dalam kartu; z-index harus di
+     atasnya supaya chart tidak menembus header saat halaman digulir. */
+  z-index: 50;
+  isolation: isolate;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; height: 60px;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-mark { flex: none; border-radius: 6px; display: block; }
+.brand-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.brand-sub {
+  font-size: 13px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding-left: 10px; margin-left: 2px;
+  border-left: 1px solid var(--border);
+}
+
+/* Status koneksi model — titik + teks, tidak mengandalkan warna saja */
+.status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px 3px 7px;
+  font-size: 12px; color: var(--text-2);
+  background: var(--plane); border: 1px solid var(--border);
+  border-radius: 999px; white-space: nowrap;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.status-on  .status-dot { background: var(--good); }
+.status-off .status-dot { background: var(--critical); }
+
+@media (max-width: 900px) { .status { display: none; } }
+
+.nav { display: flex; align-items: center; gap: 4px; }
+
+.nav-link {
+  padding: 6px 12px;
+  font-size: 14px;
+  color: var(--text-2);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.nav-link:hover { background: var(--plane); color: var(--text-1); }
+.nav-link[aria-current="page"] {
+  color: var(--text-1); font-weight: 600;
+  background: var(--plane);
+}
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer;
+  color: var(--text-2);
+}
+.icon-btn:hover { background: var(--plane); color: var(--text-1); }
+
+main { padding: 40px 0 64px; }
+
+/* ---------- PAGE HEAD ---------- */
+.page-head { margin-bottom: 24px; }
+.page-title { font-size: 22px; letter-spacing: -0.02em; padding-top:50px;}
+.page-desc {
+  margin-top: 6px; max-width: 68ch;
+  font-size: 14px; color: var(--text-2);
+}
+
+.meta-row {
+  display: flex; flex-wrap: wrap; gap: 8px 18px;
+  margin-top: 12px;
+  font-size: 13px; color: var(--muted);
+}
+.meta-row > span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---------- SECTION LABEL ---------- */
+/* Penanda tahap alur baca: ukuran masalah -> pengungkit -> wilayah -> arah */
+.section-label {
+  display: flex; align-items: center; gap: 10px;
+  margin: 26px 0 12px;
+  font-size: 11.5px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted);
+}
+.section-label::after {
+  content: ""; flex: 1; height: 1px; background: var(--border);
+}
+.section-step {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 17px; height: 17px; flex: none;
+  font-size: 10.5px; letter-spacing: 0;
+  color: var(--surface-1); background: var(--text-2);
+  border-radius: 50%;
+}
+
+/* ---------- KEY FINDING ---------- */
+/* Satu temuan yang paling menentukan, ditonjolkan sekali per halaman. */
+.finding {
+  display: flex; gap: 13px; align-items: flex-start;
+  padding: 15px 17px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--series-1);
+  border-radius: var(--radius);
+}
+.finding-key {
+  font-size: 21px; font-weight: 600; letter-spacing: -.02em;
+  color: var(--series-1); line-height: 1.15; flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.finding-body { font-size: 13.5px; color: var(--text-2); }
+.finding-body strong { color: var(--text-1); font-weight: 600; }
+
+/* ---------- CARD ---------- */
+.card {
+  position: relative; z-index: 0;   /* kurung Plotly di dalam kartu */
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.card-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; padding: 16px 18px 0;
+}
+.card-title { font-size: 15px; }
+.card-desc { margin-top: 3px; font-size: 13px; color: var(--muted); }
+.card-body { padding: 16px 18px 18px; }
+.card-foot {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  font-size: 13px; color: var(--text-2);
+}
+
+/* ---------- GRID ---------- */
+.grid { display: grid; gap: 16px; }
+.g-kpi { grid-template-columns: repeat(4, 1fr); }
+.g-main { grid-template-columns: 1fr 1fr; align-items: start; }
+.g-sim { grid-template-columns: 380px 1fr; align-items: start; }
+
+@media (max-width: 1080px) {
+  .g-kpi { grid-template-columns: repeat(2, 1fr); }
+  .g-main, .g-sim { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px; }
+  .g-kpi { grid-template-columns: 1fr; }
+  .brand-sub { display: none; }
+}
+
+/* ---------- STAT TILE ---------- */
+.stat { padding: 16px 18px; position: relative; }
+
+/* Kartu KPI utama diberi aksen tipis di tepi atas — penanda hierarki,
+   bukan hiasan: hanya satu kartu yang memakainya. */
+.stat-lead::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, var(--series-1), transparent 85%);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.stat-label {
+  font-size: 13px; color: var(--muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.stat-value {
+  margin-top: 6px;
+  font-size: 30px; font-weight: 600; letter-spacing: -0.02em;
+  /* proporsional, bukan tabular — tabular bikin angka besar terlihat renggang */
+}
+.stat-unit { font-size: 15px; font-weight: 500; color: var(--text-2); margin-left: 2px; }
+.stat-note { margin-top: 6px; font-size: 13px; color: var(--text-2); }
+
+.hero-value {
+  font-size: 52px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;
+}
+
+/* Sparkline 4 titik di kartu KPI — konteks arah, bukan chart penuh */
+.spark { display: block; width: 100%; height: 30px; margin-top: 10px; overflow: visible; }
+.spark-line { fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.spark-area { stroke: none; opacity: .10; }
+.spark-dot { stroke: var(--surface-1); stroke-width: 1.6; }
+
+/* Deret angka kecil: pembanding antar tahun tanpa memakai chart */
+.stat-scale {
+  display: flex; justify-content: space-between;
+  margin-top: 5px; font-size: 11px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.delta { display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+.delta-good { color: var(--good-ink); }
+.delta-bad  { color: var(--critical); }
+
+/* ---------- METER ---------- */
+.meter {
+  height: 6px; margin-top: 10px;
+  background: color-mix(in srgb, var(--series-1) 16%, transparent);
+  border-radius: 999px; overflow: hidden;
+}
+.meter-fill {
+  height: 100%; background: var(--series-1);
+  border-radius: 999px; transition: width .35s ease;
+}
+
+/* ---------- CHART ---------- */
+.chart { width: 100%; }
+.chart-note {
+  margin-top: 10px; font-size: 12.5px; color: var(--muted);
+}
+
+/* Legend — identitas tidak pernah hanya lewat warna */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 16px;
+  font-size: 13px; color: var(--text-2);
+}
+.legend-item { display: inline-flex; align-items: center; gap: 7px; }
+.legend-swatch {
+  width: 11px; height: 11px; border-radius: 3px; flex: none;
+}
+.legend-line {
+  width: 14px; height: 2px; border-radius: 2px; flex: none;
+}
+
+/* ---------- TABLE VIEW (padanan WCAG untuk tiap chart) ---------- */
+.table-toggle {
+  margin-top: 12px;
+  background: none; border: 0; padding: 0;
+  font-size: 13px; color: var(--text-2);
+  cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.table-toggle:hover { color: var(--text-1); }
+
+.table-scroll { overflow-x: auto; margin-top: 10px; }
+
+table.data {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; font-variant-numeric: tabular-nums;
+}
+table.data caption {
+  text-align: left; padding-bottom: 8px;
+  font-size: 13px; color: var(--muted);
+}
+table.data th, table.data td {
+  padding: 7px 10px; text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data th:first-child, table.data td:first-child {
+  text-align: left; white-space: normal;
+}
+table.data thead th {
+  font-weight: 600; color: var(--text-2);
+  border-bottom: 1px solid var(--axis);
+}
+table.data tbody tr:last-child td { border-bottom: 0; }
+
+/* ---------- LEVERAGE RANK ---------- */
+/* Daftar berperingkat di bawah chart pengungkit: menerjemahkan bar jadi urutan
+   aksi yang bisa dibaca sekilas, lengkap dengan status signifikansi. */
+.rank-list { display: grid; gap: 2px; margin-top: 4px; }
+
+.rank-row {
+  display: grid; grid-template-columns: 20px 1fr auto;
+  gap: 10px; align-items: baseline;
+  padding: 7px 8px; border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.rank-row:hover { background: var(--plane); }
+.rank-num {
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.rank-name { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.rank-dot { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.rank-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-val {
+  font-weight: 600; font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; gap: 7px;
+}
+
+/* Penanda "tidak signifikan" — ikon + label, tidak pernah warna saja */
+.tag-ns {
+  padding: 1px 6px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 500; letter-spacing: .01em;
+  color: var(--muted); background: var(--plane);
+  border: 1px solid var(--border);
+}
+
+/* ---------- CLUSTER CARDS ---------- */
+.cluster-list { display: grid; gap: 10px; }
+
+/* Strip proporsi: berapa banyak provinsi di tiap kluster, dalam satu baris */
+.share-strip {
+  display: flex; gap: 2px; margin-bottom: 14px;
+  height: 30px; border-radius: var(--radius-sm); overflow: hidden;
+}
+.share-seg {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; font-weight: 600; color: #fff;
+  min-width: 0; transition: filter .15s;
+}
+.share-seg:hover { filter: brightness(1.08); }
+
+.cluster-item {
+  display: grid;
+  grid-template-columns: 3px 1fr auto;
+  gap: 14px; align-items: start;
+  padding: 12px 14px 12px 0;
+  background: var(--plane);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.cluster-rule { align-self: stretch; border-radius: 3px 0 0 3px; }
+.cluster-name { font-size: 14px; font-weight: 600; }
+.cluster-meta { margin-top: 2px; font-size: 13px; color: var(--text-2); }
+.cluster-provs { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+.cluster-val {
+  text-align: right; font-size: 18px; font-weight: 600;
+  font-variant-numeric: tabular-nums; padding-right: 14px;
+}
+.cluster-val-label { font-size: 12px; font-weight: 400; color: var(--muted); }
+
+/* ---------- CONTROLS ---------- */
+.field { margin-bottom: 18px; }
+.field-label {
+  display: block; margin-bottom: 6px;
+  font-size: 13px; font-weight: 500;
+}
+.field-hint { margin-top: 5px; font-size: 12.5px; color: var(--muted); }
+
+select.control {
+  width: 100%; padding: 9px 11px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* Slider */
+.slider-row { padding: 14px 0; border-top: 1px solid var(--border); }
+.slider-row:first-of-type { border-top: 0; }
+
+.slider-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 2px;
+}
+.slider-name { font-size: 14px; font-weight: 500; }
+.slider-val {
+  font-size: 16px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.slider-desc { margin-bottom: 9px; font-size: 12.5px; color: var(--muted); }
+
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 22px;
+  background: transparent; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 999px; background: var(--grid);
+}
+input[type="range"]::-moz-range-track {
+  height: 4px; border-radius: 999px; background: var(--grid);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; margin-top: -6px;
+  border-radius: 50%; background: var(--series-1);
+  border: 2px solid var(--surface-1);
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%; background: var(--series-1);
+  border: 2px solid var(--surface-1);
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.slider-scale {
+  display: flex; justify-content: space-between;
+  margin-top: 2px; font-size: 11.5px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 16px;
+  font-size: 14px; font-weight: 500;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  cursor: pointer; text-decoration: none;
+}
+.btn-primary { background: var(--series-1); color: #fff; }
+.btn-primary:hover { filter: brightness(0.93); }
+.btn-primary:disabled { opacity: .55; cursor: default; filter: none; }
+.btn-ghost {
+  background: var(--surface-1); color: var(--text-1);
+  border-color: var(--border-strong);
+}
+.btn-ghost:hover { background: var(--plane); }
+.btn-row { display: flex; gap: 8px; margin-top: 4px; }
+.btn-row .btn { flex: 1; }
+
+/* Preset chips */
+.presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip {
+  padding: 5px 10px;
+  font-size: 12.5px;
+  background: var(--surface-1); color: var(--text-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px; cursor: pointer;
+}
+.chip:hover { background: var(--plane); color: var(--text-1); }
+
+/* ---------- RESULT ---------- */
+.result-row {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden;
+}
+.result-cell { background: var(--surface-1); padding: 14px 16px; }
+.result-label { font-size: 12.5px; color: var(--muted); }
+.result-value {
+  margin-top: 4px; font-size: 26px; font-weight: 600;
+  letter-spacing: -0.02em;
+}
+@media (max-width: 560px) {
+  .result-row { grid-template-columns: 1fr; }
+}
+
+/* Contribution bars */
+.contrib { display: grid; gap: 12px; }
+.contrib-item { display: grid; gap: 5px; }
+.contrib-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; font-size: 13px;
+}
+.contrib-name { font-weight: 500; }
+.contrib-val { font-variant-numeric: tabular-nums; color: var(--text-2); }
+.contrib-track {
+  position: relative; height: 8px;
+  background: var(--plane); border-radius: 3px;
+}
+.contrib-mid {
+  position: absolute; top: -2px; bottom: -2px; left: 50%;
+  width: 1px; background: var(--axis);
+}
+.contrib-bar {
+  position: absolute; top: 0; height: 8px;
+  border-radius: 2px;
+}
+
+/* ---------- CLUSTER COMPARE ---------- */
+/* Skenario yang sama dijalankan pada tiap kluster, disusun sebagai bar
+   berbagi satu skala supaya perbedaan responsivitasnya langsung terbaca. */
+.cmp { display: grid; gap: 12px; }
+
+.cmp-row { display: grid; gap: 5px; }
+.cmp-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; font-size: 13px;
+}
+.cmp-name { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.cmp-dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.cmp-n { color: var(--muted); font-size: 12px; }
+.cmp-val {
+  font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--good-ink);
+}
+.cmp-val-bad { color: var(--critical); }
+
+.cmp-track {
+  position: relative; height: 8px;
+  background: var(--plane); border-radius: 3px; overflow: hidden;
+}
+.cmp-bar { position: absolute; left: 0; top: 0; height: 8px; border-radius: 2px; }
+
+.cmp-current { background: var(--plane); border-radius: var(--radius-sm); }
+.cmp-current .cmp-name { font-weight: 600; }
+
+/* ---------- CALLOUT ---------- */
+.callout {
+  display: flex; gap: 10px;
+  padding: 12px 14px;
+  background: var(--plane);
+  border-left: 3px solid var(--axis);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px; color: var(--text-2);
+}
+.callout-icon { flex: none; margin-top: 1px; color: var(--muted); }
+.callout strong { color: var(--text-1); font-weight: 600; }
+.callout-warn { border-left-color: var(--warning); }
+
+/* ---------- EMPTY ---------- */
+.empty {
+  padding: 28px 16px; text-align: center;
+  font-size: 13px; color: var(--muted);
+}
+
+/* ---------- TOAST ---------- */
+.toast-stack {
+  position: fixed; right: 16px; bottom: 16px; z-index: 60;
+  display: grid; gap: 8px; max-width: 340px;
+}
+.toast {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 11px 13px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .10);
+  font-size: 13px;
+}
+.toast-warn { border-left-color: var(--warning); }
+.toast-good { border-left-color: var(--good); }
+.toast-bad  { border-left-color: var(--critical); }
+.toast-title { font-weight: 600; }
+.toast-body { color: var(--text-2); margin-top: 1px; }
+.toast code {
+  font-size: 12px; padding: 1px 4px;
+  background: var(--plane); border-radius: 3px;
+}
+
+/* ---------- GLOSSARY ---------- */
+.glossary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 28px; }
+@media (max-width: 900px) { .glossary { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .glossary { grid-template-columns: 1fr; } }
+
+.gloss-term { font-size: 13.5px; font-weight: 600; }
+.gloss-def { margin-top: 3px; font-size: 13px; color: var(--text-2); }
+
+/* ---------- MODAL ---------- */
+dialog.modal {
+  width: min(620px, calc(100vw - 32px));
+  padding: 0; border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1); color: var(--text-1);
+}
+dialog.modal::backdrop { background: rgba(0, 0, 0, .45); }
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-body { padding: 18px; font-size: 14px; color: var(--text-2); }
+.modal-body h4 {
+  margin: 18px 0 6px; font-size: 13.5px; color: var(--text-1);
+}
+.modal-body h4:first-child { margin-top: 0; }
+.modal-body p + p { margin-top: 8px; }
+.modal-body ul { margin: 6px 0 0; padding-left: 18px; }
+.modal-body li { margin-bottom: 4px; }
+
+/* ---------- LOADING ---------- */
+/* Refetch menahan render sebelumnya — tanpa skeleton, tanpa lompatan layout */
+.is-loading { opacity: .55; transition: opacity .15s; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+@media print {
+  .topbar, .nav, .table-toggle, .btn, .toast-stack { display: none !important; }
+  .card { break-inside: avoid; border-color: #999; }
+}

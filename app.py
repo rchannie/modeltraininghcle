@@ -1,151 +1,115 @@
-# app.py - DIPERBAIKI
+# app.py - HCLE Navigator API
+
+import os
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from model_utils import load_and_preprocess_data, run_all_analysis
-import pandas as pd
-import os
+
+from model_utils import load_and_preprocess_data, run_all_analysis, simulasi
 
 app = Flask(__name__)
 CORS(app)
 
-# Folder tempat file frontend & GeoJSON berada
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
-# --- LOAD DAN HITUNG MODEL SEKALI SAJA SAAT SERVER DIMULAI ---
+# --- MODEL DIHITUNG SEKALI SAAT STARTUP ---
+# Konsekuensinya: mengubah CSV butuh restart server.
 print("Memuat data dan model...")
 try:
     df = load_and_preprocess_data()
     analysis_results = run_all_analysis(df)
-    print("Data dan model berhasil dimuat!")
+    print("Data dan model berhasil dimuat.")
 except Exception as e:
     print(f"Error memuat data: {e}")
     df = None
     analysis_results = None
 
-# Ekstrak hasil yang sering dipakai
-if df is not None:
+if analysis_results is not None:
     df_2024 = analysis_results['df_2024_kluster']
     model_fe = analysis_results['model_fe']
-    global_mean_hcle = df_2024['HCLE'].mean()
+    global_mean_hcli = float(df_2024['HCLI'].mean())
 else:
     df_2024 = None
     model_fe = None
-    global_mean_hcle = 0.3492
+    global_mean_hcli = None
 
-# --- ENDPOINT 1: DATA DASHBOARD STATIS (Page 1) ---
+
 @app.route('/api/dashboard_data', methods=['GET'])
 def get_dashboard_data():
-    if df is None:
+    if analysis_results is None:
         return jsonify({'error': 'Data belum dimuat'}), 500
-    
-    # Mengubah DataFrame ke format JSON yang mudah dibaca oleh JavaScript
-    data = {
-        'cluster_map_data': df_2024[['Provinsi', 'Kluster', 'HCLE']].to_dict(orient='records'),
-        'cluster_profile': analysis_results['cluster_profile'].reset_index().to_dict(orient='records'),
+
+    profile = analysis_results['cluster_profile'].reset_index()
+
+    return jsonify({
+        'cluster_map_data': df_2024[['Provinsi', 'Kluster', 'HCLI']].to_dict(orient='records'),
+        'cluster_profile': profile.to_dict(orient='records'),
         'beta_ranking': analysis_results['beta_ranking'].to_dict(orient='records'),
         'trend_data': analysis_results['trend_data'].to_dict(orient='records'),
-        'mean_hcle_2024': global_mean_hcle,
-        'metrics': analysis_results['metrics']
-    }
-    return jsonify(data)
+        'validasi_k': analysis_results['validasi_k'],
+        'audit': analysis_results['audit'],
+        'mean_hcli_2024': global_mean_hcli,
+        'tahun_uji': analysis_results['tahun_uji'],
+        'metrics': analysis_results['metrics'],
+    })
 
-# --- ENDPOINT 2: SIMULASI DINAMIS (Page 2) ---
+
 @app.route('/api/run_simulation', methods=['POST'])
 def run_simulation():
-    if df is None or model_fe is None:
+    if analysis_results is None:
         return jsonify({'error': 'Model belum dimuat'}), 500
-    
+
     try:
-        # Asumsi data JSON yang diterima
-        input_data = request.json
-        
-        # 1. Tentukan target provinsi/kluster
-        target_region = input_data.get('target_region', 'Nasional')
-        
-        # Gunakan df_2024 untuk simulasi (data terbaru)
-        df_scenario = df_2024.copy()
-        
-        if target_region != 'Nasional':
-            df_scenario = df_scenario[df_scenario['Kluster'] == target_region]
-        
-        # 2. Modifikasi variabel sesuai input perubahan
-        changes = input_data.get('changes', {})
-        original_values = df_scenario.copy()
-        
-        for var, change in changes.items():
-            if var in df_scenario.columns:
-                # change adalah persentase dalam desimal (misal -0.05 untuk -5%)
-                df_scenario[var] = df_scenario[var] * (1 + change)
-        
-        # 3. Prediksi HCLE baru
-        df_scenario['HCLE_Prediksi_Baru'] = model_fe.predict(df_scenario)
-        
-        # 4. Hitung statistik
-        new_hcle_mean = df_scenario['HCLE_Prediksi_Baru'].mean()
-        original_hcle_mean = original_values['HCLE'].mean()
-        
-        # 5. Hitung kontribusi per variabel (sederhana)
-        contributions = {}
-        for var, change in changes.items():
-            if var in ['NEET', 'Internet', 'RLS']:  # Variabel utama
-                # Estimasi dampak berdasarkan koefisien regresi
-                if var in model_fe.params:
-                    coef = model_fe.params[var]
-                    avg_value = original_values[var].mean()
-                    contributions[var] = {
-                        'impact': coef * avg_value * change,
-                        'coef': coef,
-                        'change': change
-                    }
-        
+        payload = request.get_json(silent=True) or {}
+        target_region = payload.get('target_region', 'Nasional')
+        changes = {k: float(v) for k, v in (payload.get('changes') or {}).items()}
+
+        hasil = simulasi(model_fe, df_2024, changes, kluster=target_region)
+
         return jsonify({
             'success': True,
-            'new_hcle_prediction': float(new_hcle_mean),
-            'delta_hcle': float(original_hcle_mean - new_hcle_mean),
-            'original_hcle_mean': float(original_hcle_mean),
-            'contributions': contributions
+            'wilayah': hasil['wilayah'],
+            'n_provinsi': hasil['n_provinsi'],
+            'original_hcli_mean': hasil['hcli_awal'],
+            'new_hcli_prediction': hasil['hcli_baru'],
+            'delta_hcli': hasil['delta'],
+            'delta_persen': hasil['delta_persen'],
+            'contributions': hasil['kontribusi'],
         })
-        
+
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 400
+        return jsonify({'success': False, 'error': str(e)}), 400
 
-# --- Menyajikan halaman frontend (agar 1 origin, tanpa masalah file://) ---
-@app.route('/')
-def serve_index():
-    return send_from_directory(FRONTEND_DIR, 'index.html')
 
-@app.route('/<path:filename>')
-def serve_frontend_file(filename):
-    # Melayani file frontend lain: script.js, chart_manager.js, simulasi.html, dll.
-    return send_from_directory(FRONTEND_DIR, filename)
-
-# --- ENDPOINT: GeoJSON Peta Indonesia (38 provinsi) ---
 @app.route('/api/geojson', methods=['GET'])
 def get_geojson():
-    # Melayani file GeoJSON lokal supaya peta tidak bergantung koneksi ke GitHub
+    # Dilayani lokal supaya peta tidak bergantung koneksi eksternal.
     return send_from_directory(os.path.join(FRONTEND_DIR, 'data'),
                                'indonesia-38-provinces.geojson',
                                mimetype='application/json')
 
-# --- ENDPOINT 3: Health Check ---
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({
-        'status': 'ok',
-        'model_loaded': df is not None,
-        'hcle_mean_2024': float(global_mean_hcle) if df is not None else 0.3492
+        'status': 'ok' if analysis_results is not None else 'error',
+        'model_loaded': analysis_results is not None,
+        'hcli_mean_2024': global_mean_hcli,
     })
 
-# --- Jalankan Server ---
+
+# --- FRONTEND (satu origin, tanpa masalah file://) ---
+@app.route('/')
+def serve_index():
+    return send_from_directory(FRONTEND_DIR, 'index.html')
+
+
+@app.route('/<path:filename>')
+def serve_frontend_file(filename):
+    return send_from_directory(FRONTEND_DIR, filename)
+
+
 if __name__ == '__main__':
-    print("Server HCLE Navigator berjalan di http://127.0.0.1:5000")
-    print("Endpoint tersedia:")
-    print("  - GET  /api/dashboard_data")
-    print("  - POST /api/run_simulation")
-    print("  - GET  /api/health")
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    print("Server HCLE Navigator: http://127.0.0.1:5000")
+    app.run(debug=False, host='127.0.0.1', port=5000)
